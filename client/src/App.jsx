@@ -184,11 +184,16 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  // Retry helper — handles Render cold start (server wakes up in ~30s)
-  const fetchWithRetry = async (url, options, retries = 3, delayMs = 8000) => {
+  // Retry helper — handles Render cold start (server can take 30-60s to wake).
+  // Each attempt is aborted after `timeoutMs` so a hanging cold-start request is
+  // retried quickly instead of blocking on the gateway timeout.
+  const fetchWithRetry = async (url, options, retries = 6, delayMs = 4000, timeoutMs = 20000) => {
     for (let attempt = 1; attempt <= retries; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
-        const res = await window.fetch(url, options);
+        const res = await window.fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(timer);
         // Return immediately for any 4xx — caller reads data.error
         if (res.ok || res.status < 500) return res;
         // 5xx (server cold start) — retry unless last attempt
@@ -196,6 +201,7 @@ export default function App() {
         setError(`${t('serverStarting')} (${attempt}/${retries})`);
         await new Promise(r => setTimeout(r, delayMs));
       } catch (err) {
+        clearTimeout(timer);
         if (attempt === retries) throw err;
         setError(`${t('serverStarting')} (${attempt}/${retries})`);
         await new Promise(r => setTimeout(r, delayMs));
@@ -279,6 +285,7 @@ export default function App() {
         body: JSON.stringify({ role: selectedRole }),
       });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t('loginFailed'));
       localStorage.setItem('token', data.token);
       localStorage.setItem('userId', data.userId);
       localStorage.setItem('username', 'Guest');
