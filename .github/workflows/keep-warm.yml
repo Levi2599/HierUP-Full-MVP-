@@ -1,0 +1,22 @@
+name: Keep Render backend warm
+
+# Pings the backend /health endpoint on a schedule so the Render free-tier
+# service does not spin down (avoids the 30-60s cold start on first request).
+# NOTE: GitHub may delay or pause scheduled workflows on inactive repos, so an
+# external monitor (e.g. UptimeRobot) is a more reliable primary option.
+
+on:
+  schedule:
+    # Every 10 minutes (cron minimum granularity that GitHub honors reliably).
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /health
+        run: |
+          curl -fsS --max-time 60 --retry 3 --retry-delay 10 \
+            https://smartinterviewer-full-mvp-backend.onrender.com/health \
+            && echo "Backend is awake."
