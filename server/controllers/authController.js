@@ -13,6 +13,11 @@ const { UserModel } = require('../../database/users/userDB');
 const { SessionModel } = require('../../database/simulator/sessionDB');
 const { ProgressModel } = require('../../database/progress/progressDB');
 
+// Throttle the guest cleanup so its heavy scan runs at most once per hour,
+// instead of on every guest login (which slowed down the guest experience).
+let lastGuestCleanup = 0;
+const GUEST_CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+
 async function cleanOldGuestData() {
   try {
     const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -105,7 +110,10 @@ router.post('/guest', (req, res) => {
   const guestId = `guest-${uuidv4().slice(0, 8)}`;
   const token = jwt.sign({ userId: guestId, username: 'Guest', role: selectedRole }, JWT_SECRET, { expiresIn: '30d' });
 
-  cleanOldGuestData().catch(() => {});
+  if (Date.now() - lastGuestCleanup > GUEST_CLEANUP_INTERVAL_MS) {
+    lastGuestCleanup = Date.now();
+    cleanOldGuestData().catch(() => {});
+  }
 
   return res.json({ token, userId: guestId, username: 'Guest', role: selectedRole });
 });

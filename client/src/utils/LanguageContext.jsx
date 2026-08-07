@@ -23,7 +23,15 @@ export function LanguageProvider({ children }) {
     setLanguageState(lang);
   };
 
-  const t = (key) => translations[language]?.[key] ?? translations['en'][key] ?? key;
+  // Strips decorative emoji/pictographs from UI labels for a consistent, mature
+  // look, while preserving directional arrows (← →) which are legitimate UI cues.
+  const emojiOnly = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}\u{1F1E6}-\u{1F1FF}]/gu;
+  const t = (key) => {
+    const raw = translations[language]?.[key] ?? translations['en'][key] ?? key;
+    return typeof raw === 'string'
+      ? raw.replace(emojiOnly, '').replace(/\s{2,}/g, ' ').trim()
+      : raw;
+  };
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>

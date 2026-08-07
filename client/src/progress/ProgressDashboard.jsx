@@ -84,7 +84,6 @@ export default function ProgressDashboard() {
     let refreshTimeoutId = null;
 
     const fetchProgress = async () => {
-      const startTime = Date.now();
       const activeUserId = localStorage.getItem('userId') || 'user-001';
       setLoading(true);
       setError('');
@@ -97,14 +96,6 @@ export default function ProgressDashboard() {
         if (res.status === 404) { setData(null); setLoading(false); return; }
         if (!res.ok) throw new Error('Failed to retrieve progress data.');
         const json = await res.json();
-        
-        // Enforce a minimum 800ms loading duration for a smooth visual transition
-        const elapsed = Date.now() - startTime;
-        const remainingDelay = Math.max(0, 800 - elapsed);
-        if (remainingDelay > 0) {
-          await new Promise(resolve => setTimeout(resolve, remainingDelay));
-        }
-
         setData(json);
         setLoading(false);
       } catch (err) {

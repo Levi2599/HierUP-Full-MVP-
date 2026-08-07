@@ -241,7 +241,7 @@ export default function SimulatorScreen() {
           textDecoration: 'none',
           direction: 'ltr',
         }}>
-          <Icon name={language === 'he' ? 'arrowRight' : 'arrowLeft'} size={16} />
+          <Icon name="arrowLeft" size={16} />
           <span>{t('simBackSetup')}</span>
         </Link>
       </div>
@@ -328,7 +328,10 @@ export default function SimulatorScreen() {
           backgroundColor: 'var(--si-surface)', borderRadius: '16px',
           border: '1px solid var(--si-border)', boxShadow: 'var(--si-shadow-sm)',
         }}>
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <style>{`
+            @keyframes spin { to { transform: rotate(360deg); } }
+            @keyframes si-loadbar { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
+          `}</style>
           <div style={{
             width: '52px', height: '52px',
             border: '4px solid #e0d9ff',
@@ -338,6 +341,12 @@ export default function SimulatorScreen() {
           }} />
           <div style={{ fontWeight: '700', color: '#1e293b', fontSize: '1.05rem', textAlign: 'center', padding: '0 1rem' }}>
             {loading}
+          </div>
+          <div style={{ width: '100%', maxWidth: '280px', height: '4px', backgroundColor: '#ede9fe', borderRadius: '999px', overflow: 'hidden' }}>
+            <div style={{ width: '35%', height: '100%', backgroundColor: INDIGO, borderRadius: '999px', animation: 'si-loadbar 1.3s ease-in-out infinite' }} />
+          </div>
+          <div style={{ color: 'var(--si-text-soft)', fontSize: '0.82rem', textAlign: 'center' }}>
+            {t('simLoadingHint')}
           </div>
         </div>
       </div>
@@ -369,7 +378,7 @@ export default function SimulatorScreen() {
               {t('simTitle')}
             </span>
             <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '600' }}>
-              {t('simTurn')} {turnNumber} — {expectedMethod} {t('simFrameworkTarget')}
+              {t('simTurn')} {turnNumber} · {expectedMethod} {t('simFrameworkTarget')}
             </span>
           </div>
         </div>
@@ -523,7 +532,7 @@ export default function SimulatorScreen() {
                       color: isSpeaking ? '#dc2626' : '#475569',
                       border: `1px solid ${isSpeaking ? '#fca5a5' : '#e2e8f0'}`,
                       borderRadius: '50%',
-                      width: '34px', height: '34px', cursor: 'pointer',
+                      width: '34px', height: '34px', minHeight: '34px', cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: '0.9rem', transition: 'all 0.15s', flexShrink: 0
                     }}

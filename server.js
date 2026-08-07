@@ -59,7 +59,7 @@ setInterval(() => {
 
 app.get("/", (req, res) => {
   res.json({
-    app: "SmartInterviewer AI",
+    app: "HireUp",
     status: "running",
   });
 });

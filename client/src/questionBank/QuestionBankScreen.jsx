@@ -75,6 +75,10 @@ export default function QuestionBankScreen() {
 
   const handleGenerate = async (e) => {
     e.preventDefault();
+    if (!jobRole.trim() || !industry.trim()) {
+      setError(t('qbRequiredFields'));
+      return;
+    }
     setLoading(true);
     setError('');
     setQuestions([]);
@@ -118,7 +122,7 @@ export default function QuestionBankScreen() {
     setExporting('pdf');
     setExportError('');
     try {
-      const brand = localStorage.getItem('pref-recruiter-company') || 'SmartInterviewer AI';
+      const brand = localStorage.getItem('pref-recruiter-company') || 'HireUp';
       const res = await fetch(`/api/questionBank/export/${questionBankId}?format=pdf&brand=${encodeURIComponent(brand)}`, {
         headers: getAuthHeaders(),
       });
@@ -165,7 +169,7 @@ export default function QuestionBankScreen() {
             direction: 'ltr',
           }}
         >
-          <Icon name={language === 'he' ? 'arrowRight' : 'arrowLeft'} size={16} />
+          <Icon name="arrowLeft" size={16} />
           <span>{t('qbBackDashboard')}</span>
         </button>
       </div>
@@ -246,7 +250,7 @@ export default function QuestionBankScreen() {
           </div>
         ) : (
           /* Editable generation form */
-          <form onSubmit={handleGenerate}>
+          <form onSubmit={handleGenerate} noValidate>
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
@@ -467,7 +471,7 @@ export default function QuestionBankScreen() {
                           onClick={() => addToBasket(q)}
                           disabled={inBasket}
                           style={{
-                            width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0,
+                            width: '30px', height: '30px', minHeight: '30px', borderRadius: '50%', flexShrink: 0,
                             border: 'none', cursor: inBasket ? 'not-allowed' : 'pointer',
                             backgroundColor: inBasket ? '#e0d9ff' : '#3b82f6',
                             color: '#fff', fontWeight: '800', fontSize: '1.1rem',
@@ -589,7 +593,7 @@ export default function QuestionBankScreen() {
                           type="button"
                           onClick={() => removeFromBasket(i)}
                           style={{
-                            width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0,
+                            width: '22px', height: '22px', minHeight: '22px', borderRadius: '50%', flexShrink: 0,
                             border: 'none', cursor: 'pointer',
                             backgroundColor: '#f1f5f9', color: '#94a3b8',
                             fontWeight: '700', fontSize: '0.8rem',

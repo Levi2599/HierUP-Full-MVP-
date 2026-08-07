@@ -44,7 +44,7 @@ function ComponentChecklist({ labels, star, missing_components }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       {Object.entries(labels).map(([key, labelKey]) => {
         const label = t(labelKey);
         const score = star?.[key] ?? 0;
@@ -74,9 +74,9 @@ function ComponentChecklist({ labels, star, missing_components }) {
                 <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b' }}>{label}</span>
                 {!isPresent && (
                   <span style={{
-                    marginLeft: '0.4rem', fontSize: '0.7rem',
+                    marginInlineStart: '0.4rem', fontSize: '0.7rem',
                     color: '#dc2626', fontWeight: '600',
-                  }}>— {t('coachMissing')}</span>
+                  }}>({t('coachMissing')})</span>
                 )}
               </div>
               <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748b', flexShrink: 0 }}>{score}/100</span>
@@ -89,11 +89,6 @@ function ComponentChecklist({ labels, star, missing_components }) {
                 transition: 'width 0.4s ease',
               }} />
             </div>
-            {!isPresent && (
-              <p style={{ fontSize: '0.72rem', color: '#ef4444', marginTop: '0.35rem', fontStyle: 'italic' }}>
-                {t('coachTip').replace('{component}', label.split(' ')[0].toLowerCase())}
-              </p>
-            )}
           </div>
         );
       })}
@@ -280,21 +275,38 @@ export default function CoachOverlay({ feedback, originalAnswer, questionText, s
           )}
 
           {/* Improvement tip — only shown when score < 85 */}
-          {improvement_tip && !isExcellent && (
-            <div style={{
-              backgroundColor: 'var(--si-warning-soft)',
-              border: '1px solid #fde68a',
-              borderRadius: '10px',
-              padding: '0.875rem 1rem',
-            }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#92400e', marginBottom: '0.25rem', letterSpacing: '0.05em' }}>
-                💡 {t('coachActionableTip')}
+          {improvement_tip && !isExcellent && (() => {
+            const tipPoints = String(improvement_tip)
+              .split(/(?<=[.!?׃])\s+(?=[A-Za-z֐-׿0-9])/)
+              .map((s) => s.trim())
+              .filter(Boolean);
+            return (
+              <div style={{
+                backgroundColor: 'var(--si-warning-soft)',
+                border: '1px solid #fde68a',
+                borderRadius: '12px',
+                padding: '1rem 1.15rem',
+              }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#92400e', marginBottom: '0.6rem', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Icon name="info" size={14} /> {t('coachActionableTip')}
+                </div>
+                {tipPoints.length > 1 ? (
+                  <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {tipPoints.map((point, i) => (
+                      <li key={i} style={{ display: 'flex', gap: '0.5rem', color: '#78350f', fontSize: '0.9rem', lineHeight: '1.6' }}>
+                        <span style={{ color: '#b45309', fontWeight: '700', flexShrink: 0 }}>•</span>
+                        <span>{point}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p style={{ color: '#78350f', fontSize: '0.9rem', lineHeight: '1.65', margin: 0 }}>
+                    {improvement_tip}
+                  </p>
+                )}
               </div>
-              <p style={{ color: '#78350f', fontSize: '0.9rem', lineHeight: '1.5', margin: 0 }}>
-                {improvement_tip}
-              </p>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Action buttons */}
           {!isRetrying && !retryResult && (
@@ -462,12 +474,12 @@ export default function CoachOverlay({ feedback, originalAnswer, questionText, s
                   borderRadius: '8px', padding: '0.75rem',
                   fontSize: '0.83rem', color: '#9a3412', marginBottom: '0.75rem',
                 }}>
-                  💡 {t('coachNoImprovement').replace('{method}', method)}
+                  <Icon name="info" size={14} /> {t('coachNoImprovement').replace('{method}', method)}
                 </div>
               )}
               {retryResult.retry_feedback?.improvement_tip && retryResult.improvement && (
                 <p style={{ fontSize: '0.85rem', color: '#475569', margin: '0 0 0.75rem 0' }}>
-                  💡 {retryResult.retry_feedback.improvement_tip}
+                  <Icon name="info" size={14} /> {retryResult.retry_feedback.improvement_tip}
                 </p>
               )}
               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>

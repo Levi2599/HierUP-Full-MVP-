@@ -4,6 +4,7 @@ import Stepper from '../components/Stepper';
 import { getAuthHeadersFormData, getAuthHeaders } from '../utils/auth';
 import { createWorker } from 'tesseract.js';
 import { useLanguage } from '../utils/LanguageContext';
+import Icon from '../components/ui/icons';
 
 const INDIGO = '#4f46e5';
 const INDIGO_LIGHT = '#f5f3ff';
@@ -127,7 +128,7 @@ function UploadZone({ icon, label, text, setText, isLoading, setIsLoading, onFil
 
     if (text) return (
       <>
-        <span style={{ fontSize: '1.5rem' }}>✅</span>
+        <Icon name="checkCircle" size={24} style={{ color: '#16a34a' }} />
         <span style={{ color: '#166634', fontWeight: '700', fontSize: '0.85rem' }}>{t('uploadFileParsed')}</span>
         <span style={{ color: '#64748b', fontSize: '0.75rem', textAlign: 'center' }}>{text.slice(0, 60)}...</span>
         <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
@@ -136,7 +137,7 @@ function UploadZone({ icon, label, text, setText, isLoading, setIsLoading, onFil
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setText(''); }}
             style={{ color: '#ef4444', fontSize: '0.75rem', textDecoration: 'underline', fontWeight: '600', cursor: 'pointer' }}
           >
-            ❌ {t('uploadDiscard')}
+            <Icon name="close" size={13} /> {t('uploadDiscard')}
           </span>
         </div>
       </>
@@ -162,7 +163,7 @@ function UploadZone({ icon, label, text, setText, isLoading, setIsLoading, onFil
         {/* Header row: icon + label on left, toggle button on right */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '1.2rem' }}>{icon}</span>
+            <Icon name={icon} size={18} style={{ color: INDIGO }} />
             <span style={{ fontWeight: '700', fontSize: '0.9rem', color: '#1e293b' }}>{label}</span>
           </div>
 
@@ -256,7 +257,7 @@ function UploadZone({ icon, label, text, setText, isLoading, setIsLoading, onFil
                   cursor: 'pointer', transition: 'all 0.15s',
                 }}
               >
-                {isRecording ? `🔴 ${t('uploadVoiceStop')}` : `🎤 ${t('uploadVoiceInput')}`}
+                {isRecording ? (<><Icon name="stop" size={12} /> {t('uploadVoiceStop')}</>) : (<><Icon name="microphone" size={12} /> {t('uploadVoiceInput')}</>)}
               </button>
             )}
           </div>
@@ -265,8 +266,8 @@ function UploadZone({ icon, label, text, setText, isLoading, setIsLoading, onFil
         {/* Voice-not-supported warning */}
         {voiceWarning && (
           <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '500', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>⚠️ {voiceWarning}</span>
-            <button type="button" onClick={() => setVoiceWarning('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#92400e', fontWeight: '700' }}>✕</button>
+            <span className="si-icon-text"><Icon name="alert" size={14} /> {voiceWarning}</span>
+            <button type="button" onClick={() => setVoiceWarning('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#92400e', fontWeight: '700', display: 'inline-flex', minHeight: 'auto' }}><Icon name="close" size={14} /></button>
           </div>
         )}
 
@@ -378,7 +379,7 @@ export default function UploadResumeForm() {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!cvText.trim() || !jdText.trim()) {
-      setError('Both your CV and the Job Description are required to start the simulation.');
+      setError(t('uploadRequiredFields'));
       return;
     }
     setError('');
@@ -474,14 +475,14 @@ export default function UploadResumeForm() {
 
       {error && (
         <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '0.875rem 1rem', borderRadius: '10px', marginBottom: '1.5rem', fontWeight: '500', fontSize: '0.9rem' }}>
-          ⚠️ {error}
+          <span className="si-icon-text"><Icon name="alert" size={16} /> {error}</span>
         </div>
       )}
 
       <form onSubmit={handleSubmit}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
           <UploadZone
-            icon="📄"
+            icon="document"
             label={t('uploadCvLabel')}
             text={cvText}
             setText={setCvText}
@@ -490,7 +491,7 @@ export default function UploadResumeForm() {
             onFileUpload={(e) => { const f = e.target.files[0]; if (f) parseFile(f, setCvText, setCvLoading, true); }}
           />
           <UploadZone
-            icon="💼"
+            icon="briefcase"
             label={t('uploadJdLabel')}
             text={jdText}
             setText={setJdText}
@@ -514,7 +515,7 @@ export default function UploadResumeForm() {
             style={{ width: '16px', height: '16px', cursor: 'pointer' }}
           />
           <label htmlFor="remember-cv" style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '600', cursor: 'pointer' }}>
-            💾 {t('uploadRememberCv')}
+            {t('uploadRememberCv')}
           </label>
         </div>
 
@@ -550,7 +551,7 @@ export default function UploadResumeForm() {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
-              ⏳ {t('uploadHistoryTitle')}
+              {t('uploadHistoryTitle')}
             </h2>
             {history.length > 0 && (
               <button
@@ -584,7 +585,7 @@ export default function UploadResumeForm() {
               padding: '2rem 1rem', border: '1px dashed #cbd5e1', borderRadius: '12px',
               backgroundColor: '#f8fafc', color: '#64748b', fontSize: '0.85rem', textAlign: 'center'
             }}>
-              📁 {t('uploadHistoryNoData')}
+              <span className="si-icon-text"><Icon name="folder" size={16} /> {t('uploadHistoryNoData')}</span>
             </div>
           ) : (
             <div style={{
@@ -643,7 +644,7 @@ export default function UploadResumeForm() {
                     onMouseEnter={(e) => { e.target.style.opacity = '1'; e.target.style.transform = 'scale(1.2)'; }}
                     onMouseLeave={(e) => { e.target.style.opacity = '0.4'; e.target.style.transform = 'scale(1)'; }}
                   >
-                    🗑️
+                    <Icon name="trash" size={15} />
                   </button>
 
                   <div style={{
@@ -655,11 +656,11 @@ export default function UploadResumeForm() {
                     paddingLeft: language === 'he' ? '1.5rem' : '0',
                     paddingRight: language === 'he' ? '0' : '1.5rem'
                   }}>
-                    💼 {item.title}
+                    {item.title}
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>
-                    <span>📅 {new Date(item.created_at).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US')}</span>
-                    <span style={{ color: '#4f46e5', fontWeight: '600' }}>{language === 'he' ? 'טען ⚡' : 'Load ⚡'}</span>
+                    <span className="si-icon-text"><Icon name="calendar" size={12} /> {new Date(item.created_at).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US')}</span>
+                    <span style={{ color: '#4f46e5', fontWeight: '600' }}>{language === 'he' ? 'טען' : 'Load'}</span>
                   </div>
                 </div>
               ))}

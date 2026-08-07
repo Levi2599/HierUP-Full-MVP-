@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getAuthHeaders } from '../utils/auth';
+import { fetchWithRetry } from '../utils/fetchWithRetry';
 import { useLanguage } from '../utils/LanguageContext';
 import Icon, { stripUiIcons } from '../components/ui/icons';
 
@@ -48,21 +49,16 @@ export default function RecruiterDashboard() {
   };
 
   const fetchGuides = async (signal) => {
-    const startTime = Date.now();
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/questionBank', { headers: getAuthHeaders(), signal, cache: 'no-store' });
+      const res = await fetchWithRetry(
+        '/api/questionBank',
+        { headers: getAuthHeaders(), signal, cache: 'no-store' }
+      );
       if (!res.ok) throw new Error('Failed to retrieve question guides.');
       const data = await res.json();
-
-      // Enforce a minimum 800ms loading duration for a smooth visual transition
-      const elapsed = Date.now() - startTime;
-      const remainingDelay = Math.max(0, 800 - elapsed);
-      if (remainingDelay > 0) {
-        await new Promise(resolve => setTimeout(resolve, remainingDelay));
-      }
-
+      setError('');
       setGuides(data);
       setLoading(false);
     } catch (err) {
@@ -144,7 +140,7 @@ export default function RecruiterDashboard() {
 
   const handleExportPDF = (id, e) => {
     e.stopPropagation();
-    const brand = localStorage.getItem('pref-recruiter-company') || 'SmartInterviewer AI';
+    const brand = localStorage.getItem('pref-recruiter-company') || 'HireUp';
     window.open(`/api/questionBank/export/${id}?format=pdf&brand=${encodeURIComponent(brand)}`, '_blank');
   };
 

@@ -12,6 +12,30 @@ import Icon from './components/ui/icons';
 
 const HIREUP_LOGO_SRC = '/brand/hireup-logo-transparent.png';
 const HIREUP_SYMBOL_SRC = '/brand/hireup-internal-symbol-white.png';
+const HIREUP_LOGO_MARK_SRC = '/brand/hireup-logo-mark.png';
+
+// How long a login stays valid before the user is asked to sign in again.
+// Absolute window from login time — keeps sessions bounded without forcing
+// re-login on every visit. Change this one value to tune the duration.
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+function clearStoredAuth() {
+  ['token', 'userId', 'username', 'role', 'auth-expiry'].forEach((k) =>
+    localStorage.removeItem(k)
+  );
+}
+
+// Returns the stored token only if it exists and its session window has not
+// elapsed; otherwise clears the stale auth so the app lands on the login screen.
+function readValidToken() {
+  const tok = localStorage.getItem('token');
+  const exp = Number(localStorage.getItem('auth-expiry') || 0);
+  if (!tok || !exp || Date.now() > exp) {
+    clearStoredAuth();
+    return null;
+  }
+  return tok;
+}
 
 function FullHireUpLogo({ isMobile }) {
   return (
@@ -25,7 +49,7 @@ function FullHireUpLogo({ isMobile }) {
     >
       <img
         src={HIREUP_LOGO_SRC}
-        alt="HireUp — AI Interview Coach & Recruitment Matchmaker"
+        alt="HireUp: AI Interview Coach & Recruitment Matchmaker"
         style={{
           display: 'block',
           width: isMobile ? 'min(78vw, 270px)' : 'min(100%, 320px)',
@@ -37,27 +61,14 @@ function FullHireUpLogo({ isMobile }) {
   );
 }
 
-function HireUpTextBrand({ isMobile }) {
+function HeroBrandMark() {
   return (
-    <div
-      dir="ltr"
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        marginBottom: isMobile ? '1.25rem' : '2.5rem',
-        zIndex: 1,
-      }}
-    >
-      <span
-        style={{
-          fontSize: isMobile ? '1.6rem' : '1.9rem',
-          fontWeight: '800',
-          color: '#ffffff',
-          letterSpacing: '0',
-        }}
-      >
-        Hire<span style={{ color: '#d8b4fe' }}>Up</span>
-      </span>
+    <div dir="ltr" style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem', zIndex: 1 }}>
+      <img
+        src={HIREUP_LOGO_MARK_SRC}
+        alt="HireUp"
+        style={{ display: 'block', width: 'min(80%, 300px)', height: 'auto', objectFit: 'contain' }}
+      />
     </div>
   );
 }
@@ -163,7 +174,7 @@ function HomeRoute({ role }) {
 export default function App() {
   const { language, setLanguage, t } = useLanguage();
 
-  const [token, setToken] = useState(() => localStorage.getItem('token'));
+  const [token, setToken] = useState(() => readValidToken());
   const [username, setUsername] = useState(() => localStorage.getItem('username') || 'User');
   const [userId, setUserId] = useState(() => localStorage.getItem('userId'));
   const [role, setRole] = useState(() => localStorage.getItem('role') || 'candidate');
@@ -198,12 +209,10 @@ export default function App() {
         if (res.ok || res.status < 500) return res;
         // 5xx (server cold start) — retry unless last attempt
         if (attempt === retries) return res;
-        setError(`${t('serverStarting')} (${attempt}/${retries})`);
         await new Promise(r => setTimeout(r, delayMs));
       } catch (err) {
         clearTimeout(timer);
         if (attempt === retries) throw err;
-        setError(`${t('serverStarting')} (${attempt}/${retries})`);
         await new Promise(r => setTimeout(r, delayMs));
       }
     }
@@ -214,6 +223,7 @@ export default function App() {
     localStorage.setItem('userId', data.userId);
     localStorage.setItem('username', displayName || data.username);
     localStorage.setItem('role', data.role);
+    localStorage.setItem('auth-expiry', String(Date.now() + SESSION_TTL_MS));
     setToken(data.token);
     setUserId(data.userId);
     setUsername(displayName || data.username);
@@ -286,14 +296,7 @@ export default function App() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t('loginFailed'));
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('userId', data.userId);
-      localStorage.setItem('username', 'Guest');
-      localStorage.setItem('role', data.role);
-      setToken(data.token);
-      setUserId(data.userId);
-      setUsername('Guest');
-      setRole(data.role);
+      saveSession(data, 'Guest');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -307,6 +310,7 @@ export default function App() {
     localStorage.removeItem('userId');
     localStorage.removeItem('username');
     localStorage.removeItem('role');
+    localStorage.removeItem('auth-expiry');
     localStorage.removeItem('pref-lang');
     localStorage.removeItem('pref-font-size');
     localStorage.removeItem('pref-high-contrast');
@@ -600,23 +604,14 @@ export default function App() {
         </form>
       )}
 
+      {authTab === 'signin' && (
+      <>
       <div style={{ display: 'flex', alignItems: 'center', margin: '1rem 0' }}>
         <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }} />
         <span style={{ padding: '0 0.5rem', fontSize: '0.75rem', color: '#94a3b8', fontWeight: '600' }}>{t('or')}</span>
         <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }} />
       </div>
 
-      <div style={{ textAlign: 'start', marginBottom: '0.5rem' }}>
-        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#475569', marginBottom: '0.5rem' }}>
-          {t('continueAsGuest')}
-        </label>
-        {authTab === 'signin' && (
-          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.5rem' }}>
-            {roleCard('candidate', 'user', t('roleCandidate'))}
-            {roleCard('interviewer', 'briefcase', t('roleInterviewer'))}
-          </div>
-        )}
-      </div>
       <button
         type="button"
         onClick={handleGuest}
@@ -631,6 +626,8 @@ export default function App() {
       >
         {loading ? t('loading') : t('continueAsGuestBtn')}
       </button>
+      </>
+      )}
     </>
   );
 
@@ -657,15 +654,7 @@ export default function App() {
             padding: '2rem 1.5rem',
             textAlign: 'center',
           }}>
-            {authTab === 'signup' ? (
-              <FullHireUpLogo isMobile={isMobile} />
-            ) : (
-              <div dir="ltr" style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
-                <span style={{ fontSize: '1.35rem', fontWeight: '800', color: '#0f172a', letterSpacing: '0' }}>
-                  Hire<span style={{ color: '#3157d5' }}>Up</span>
-                </span>
-              </div>
-            )}
+            <FullHireUpLogo isMobile={isMobile} />
             <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' }}>
               {authTab === 'signin' ? t('welcomeBack') : t('createYourAccount')}
             </h2>
@@ -711,14 +700,14 @@ export default function App() {
             background: 'rgba(255,255,255,0.06)',
           }} />
 
-          <HireUpTextBrand />
+          <HeroBrandMark />
 
-          <h1 style={{ fontSize: '2rem', fontWeight: '800', textAlign: 'center', marginBottom: '1rem', lineHeight: 1.2, zIndex: 1 }}>
+          <h1 style={{ fontSize: '2rem', fontWeight: '800', color: '#e9d5ff', textAlign: 'center', marginBottom: '1rem', lineHeight: 1.2, zIndex: 1 }}>
             {t('heroTitle').split('\n').map((line, i) => (
               <React.Fragment key={i}>{line}{i === 0 && <br />}</React.Fragment>
             ))}
           </h1>
-          <p style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.8)', textAlign: 'center', maxWidth: '340px', lineHeight: 1.6, zIndex: 1, marginBottom: '2.5rem' }}>
+          <p style={{ fontSize: '1rem', color: '#ddd6fe', textAlign: 'center', maxWidth: '340px', lineHeight: 1.6, zIndex: 1, marginBottom: '2.5rem' }}>
             {t('heroSubtitle')}
           </p>
 
@@ -736,8 +725,8 @@ export default function App() {
                 borderRadius: '10px', padding: '0.65rem 1rem',
                 border: '1px solid rgba(255,255,255,0.15)',
               }}>
-                <Icon name={f.icon} size={18} />
-                <span style={{ fontSize: '0.9rem', fontWeight: '600', color: 'rgba(255,255,255,0.9)' }}>{t(f.key)}</span>
+                <Icon name={f.icon} size={18} style={{ color: '#c4b5fd' }} />
+                <span style={{ fontSize: '0.9rem', fontWeight: '600', color: 'rgba(255,255,255,0.92)' }}>{t(f.key)}</span>
               </div>
             ))}
           </div>
@@ -755,7 +744,6 @@ export default function App() {
           boxShadow: '-4px 0 24px rgba(16,32,51,0.08)',
         }}>
           <div style={{ width: '100%', maxWidth: '380px' }}>
-            {authTab === 'signup' && <FullHireUpLogo isMobile={false} />}
             <h2 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#0f172a', marginBottom: '0.4rem' }}>
               {authTab === 'signin' ? t('welcomeBack') : t('createYourAccount')}
             </h2>

@@ -7,9 +7,11 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        // Dev-only: point the local frontend at the live US backend so all
+        // screens work locally. Production uses vercel.json rewrites, not this.
+        target: 'https://hireup-ai.onrender.com',
         changeOrigin: true,
-        secure: false,
+        secure: true,
       },
     },
   },

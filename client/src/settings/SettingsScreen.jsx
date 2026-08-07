@@ -26,7 +26,7 @@ export default function SettingsScreen() {
   const [readinessThreshold, setReadinessThreshold] = useState(() => localStorage.getItem('pref-readiness-threshold') || '75');
 
   // Interviewer Settings
-  const [companyName, setCompanyName] = useState(() => localStorage.getItem('pref-recruiter-company') || 'SmartInterviewer');
+  const [companyName, setCompanyName] = useState(() => localStorage.getItem('pref-recruiter-company') || 'HireUp');
   const [defaultQuestions, setDefaultQuestions] = useState(() => localStorage.getItem('pref-recruiter-qcount') || '5');
 
   // Apply visual changes in real-time
@@ -116,7 +116,7 @@ export default function SettingsScreen() {
             direction: 'ltr',
           }}
         >
-          <Icon name={language === 'he' ? 'arrowRight' : 'arrowLeft'} size={16} />
+          <Icon name="arrowLeft" size={16} />
           <span>{t('settingsDashboardBtn')}</span>
         </button>
       </div>
