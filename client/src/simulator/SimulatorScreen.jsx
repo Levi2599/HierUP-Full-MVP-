@@ -394,11 +394,12 @@ export default function SimulatorScreen() {
               fontSize: '0.78rem', fontWeight: '700',
               border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '0.25rem',
               cursor: 'pointer', transition: 'opacity 0.15s', whiteSpace: 'nowrap',
+              direction: 'ltr',
             }}
             onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
             onMouseLeave={e => e.currentTarget.style.opacity = '1'}
           >
-            <span className="si-icon-text"><Icon name="logOut" size={16} />{t('simExitSession')}</span>
+            <span className="si-icon-text"><Icon name="logOut" size={16} style={{ transform: language === 'he' ? 'scaleX(-1)' : 'none' }} />{t('simExitSession')}</span>
           </button>
         )}
       </div>

@@ -1,3 +1,13 @@
 .env
 node_modules/
 dist/
+
+# Local tooling / editor config
+.claude/
+
+# Heavy generated media (kept locally, not in repo)
+public/remotion/
+public/brand/hireup-logo-mark-original.png
+
+# Presentations (kept locally, not in repo)
+*.pptx

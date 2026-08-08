@@ -42,12 +42,28 @@ const translations = {
     passwordRequired: 'Password is required.',
 
     // ── Branding panel ────────────────────────────────────
-    heroTitle: 'Ace Your Next\nInterview',
-    heroSubtitle: 'AI powered interview practice with real-time feedback, personalized coaching, and recruiter tools.',
+    heroTitle: 'Ace Your Next Interview',
+    heroSubtitle: 'Prepare for your interview with an AI coach.',
     feature1: 'Realistic interview simulations',
-    feature2: 'Multi-framework scoring & feedback',
-    feature3: 'AI coaching after every answer',
-    feature4: 'Recruiter dashboard & question bank',
+    feature2: 'Feedback using proven frameworks',
+    feature3: 'Practical tips to improve every answer',
+    feature4: 'Practice tailored to each role',
+
+    // Neutral sign-in variant (role unknown until login)
+    heroTitleLogin: 'A Smarter Interview Platform',
+    heroSubtitleLogin: 'Practice smarter. Interview better.',
+    featureL1: 'Questions tailored to the role',
+    featureL2: 'Question bank from job description',
+    featureL3: 'Instant feedback on answers',
+    featureL4: 'Key points for evaluating candidates',
+
+    // Recruiter signup variant
+    heroTitleRecruiter: 'Elevate Your Hiring Process',
+    heroSubtitleRecruiter: 'Build your hiring process with smart tools.',
+    featureR1: 'Custom question banks by role',
+    featureR2: 'AI-generated interview guides',
+    featureR3: 'Structured evaluation criteria',
+    featureR4: 'Prep time saved',
 
     // ── Navbar ────────────────────────────────────────────
     navDashboard: 'Dashboard',
@@ -369,7 +385,7 @@ const translations = {
     // ── Auth ──────────────────────────────────────────────
     signIn: 'כניסה',
     createAccount: 'יצירת חשבון',
-    welcomeBack: 'ברוכים הבאים ל-HireUp',
+    welcomeBack: 'ברוכים הבאים לHireUp',
     createYourAccount: 'צור את חשבונך',
     signInSubtitle: 'התחבר כדי לגשת לסימולטור הראיונות ולממשק המגייסים.',
     signUpSubtitle: 'הצטרף ל-HireUp והתחל לתרגל עוד היום.',
@@ -408,12 +424,27 @@ const translations = {
     passwordRequired: 'סיסמה היא שדה חובה.',
 
     // ── Branding panel ────────────────────────────────────
-    heroTitle: 'עלה רמה\nבראיון הבא שלך',
-    heroSubtitle: 'תרגול ראיונות מבוסס בינה מלאכותית עם משוב בזמן אמת, אימון אישי וכלים למגייסים.',
-    feature1: 'סימולציות ראיון ריאליסטיות',
-    feature2: 'ניקוד ומשוב במגוון שיטות מענה',
-    feature3: 'אימון AI לאחר כל תשובה',
-    feature4: 'לוח בקרה ובנק שאלות למגייסים',
+    heroTitle: 'עלה רמה בראיון הבא שלך',
+    heroSubtitle: 'תרגול ראיונות אמיתי עם משוב AI מיידי',
+    feature1: 'סימולציות המדמות ריאיון אמיתי',
+    feature2: 'ניתוח לפי שיטות מענה מוכרות',
+    feature3: 'טיפים מעשיים לשיפור תשובות',
+    feature4: 'תרגול מותאם אישית לפי משרה ',
+
+    heroTitleLogin: 'פלטפורמת ראיונות חכמה',
+    heroSubtitleLogin: 'תרגלו חכם יותר. התראיינו טוב יותר.',
+    featureL1: 'שאלות שנבנות לפי משרה',
+    featureL2:'בנק שאלות מתיאור התפקיד',
+    featureL3: 'משוב מיידי לשיפור תשובות',
+    featureL4: 'נקודות לבחינת מועמדים',
+
+    // גרסת מגייס בהרשמה
+    heroTitleRecruiter: 'שדרג את תהליך הגיוס',
+    heroSubtitleRecruiter: 'כלים חכמים לבניית ראיון גיוס מקצועי',
+    featureR1: 'בנק שאלות מותאם לתפקיד',
+    featureR2: 'מדריכי ראיון מבוססי AI',
+    featureR3: 'קריטריוני הערכה מובנים',
+    featureR4: 'זמן הכנה שנחסך למשרה',
 
     // ── Navbar ────────────────────────────────────────────
     navDashboard: 'לוח בקרה',

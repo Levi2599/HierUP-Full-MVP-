@@ -48,13 +48,14 @@ function FullHireUpLogo({ isMobile }) {
       }}
     >
       <img
-        src={HIREUP_LOGO_SRC}
+        src={HIREUP_LOGO_MARK_SRC}
         alt="HireUp: AI Interview Coach & Recruitment Matchmaker"
         style={{
           display: 'block',
           width: isMobile ? 'min(78vw, 270px)' : 'min(100%, 320px)',
           maxHeight: isMobile ? '112px' : '136px',
           objectFit: 'contain',
+          objectPosition: 'top',
         }}
       />
     </div>
@@ -63,11 +64,23 @@ function FullHireUpLogo({ isMobile }) {
 
 function HeroBrandMark() {
   return (
-    <div dir="ltr" style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem', zIndex: 1 }}>
+    <div dir="ltr" style={{
+      display: 'flex',
+      justifyContent: 'center',
+      marginBottom: '0.75rem',
+      zIndex: 1,
+    }}>
       <img
         src={HIREUP_LOGO_MARK_SRC}
         alt="HireUp"
-        style={{ display: 'block', width: 'min(80%, 300px)', height: 'auto', objectFit: 'contain' }}
+        style={{
+          display: 'block',
+          width: 'auto',
+          height: 'auto',
+          maxWidth: 'min(420px, 88%)',
+          maxHeight: '34vh',
+          objectFit: 'contain',
+        }}
       />
     </div>
   );
@@ -605,28 +618,28 @@ export default function App() {
       )}
 
       {authTab === 'signin' && (
-      <>
-      <div style={{ display: 'flex', alignItems: 'center', margin: '1rem 0' }}>
-        <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }} />
-        <span style={{ padding: '0 0.5rem', fontSize: '0.75rem', color: '#94a3b8', fontWeight: '600' }}>{t('or')}</span>
-        <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }} />
-      </div>
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', margin: '1rem 0' }}>
+            <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }} />
+            <span style={{ padding: '0 0.5rem', fontSize: '0.75rem', color: '#94a3b8', fontWeight: '600' }}>{t('or')}</span>
+            <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }} />
+          </div>
 
-      <button
-        type="button"
-        onClick={handleGuest}
-        disabled={loading}
-        style={{
-          width: '100%', padding: '0.75rem',
-          backgroundColor: '#f8fafc', color: '#475569',
-          border: '1px solid #e2e8f0', borderRadius: '10px', fontWeight: '600',
-          cursor: loading ? 'default' : 'pointer', transition: 'background-color 0.15s',
-          fontSize: '0.9rem',
-        }}
-      >
-        {loading ? t('loading') : t('continueAsGuestBtn')}
-      </button>
-      </>
+          <button
+            type="button"
+            onClick={handleGuest}
+            disabled={loading}
+            style={{
+              width: '100%', padding: '0.75rem',
+              backgroundColor: '#f8fafc', color: '#475569',
+              border: '1px solid #e2e8f0', borderRadius: '10px', fontWeight: '600',
+              cursor: loading ? 'default' : 'pointer', transition: 'background-color 0.15s',
+              fontSize: '0.9rem',
+            }}
+          >
+            {loading ? t('loading') : t('continueAsGuestBtn')}
+          </button>
+        </>
       )}
     </>
   );
@@ -671,9 +684,11 @@ export default function App() {
     return (
       <div style={{
         minHeight: '100vh',
+        minWidth: '860px',
         display: 'flex',
         fontFamily: 'Inter, sans-serif',
         background: 'linear-gradient(135deg, var(--si-bg) 0%, var(--si-bg-soft) 100%)',
+        overflowX: 'auto',
       }}>
         {/* Left panel — branding */}
         <div style={{
@@ -702,34 +717,43 @@ export default function App() {
 
           <HeroBrandMark />
 
-          <h1 style={{ fontSize: '2rem', fontWeight: '800', color: '#e9d5ff', textAlign: 'center', marginBottom: '1rem', lineHeight: 1.2, zIndex: 1 }}>
-            {t('heroTitle').split('\n').map((line, i) => (
-              <React.Fragment key={i}>{line}{i === 0 && <br />}</React.Fragment>
-            ))}
-          </h1>
-          <p style={{ fontSize: '1rem', color: '#ddd6fe', textAlign: 'center', maxWidth: '340px', lineHeight: 1.6, zIndex: 1, marginBottom: '2.5rem' }}>
-            {t('heroSubtitle')}
-          </p>
-
-          {/* Feature bullets */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', zIndex: 1, width: '100%', maxWidth: '340px' }}>
-            {[
-              { icon: 'play', key: 'feature1' },
-              { icon: 'barChart', key: 'feature2' },
-              { icon: 'brain', key: 'feature3' },
-              { icon: 'briefcase', key: 'feature4' },
-            ].map(f => (
-              <div key={f.key} style={{
-                display: 'flex', alignItems: 'center', gap: '0.75rem',
-                background: 'rgba(255,255,255,0.1)',
-                borderRadius: '10px', padding: '0.65rem 1rem',
-                border: '1px solid rgba(255,255,255,0.15)',
-              }}>
-                <Icon name={f.icon} size={18} style={{ color: '#c4b5fd' }} />
-                <span style={{ fontSize: '0.9rem', fontWeight: '600', color: 'rgba(255,255,255,0.92)' }}>{t(f.key)}</span>
-              </div>
-            ))}
-          </div>
+          {(() => {
+            const isLogin     = authTab === 'signin';
+            const isRecruiter = authTab === 'signup' && selectedRole === 'interviewer';
+            const titleKey   = isLogin ? 'heroTitleLogin' : isRecruiter ? 'heroTitleRecruiter'    : 'heroTitle';
+            const subKey     = isLogin ? 'heroSubtitleLogin' : isRecruiter ? 'heroSubtitleRecruiter' : 'heroSubtitle';
+            const features   = isLogin
+              ? [{ icon: 'play', key: 'featureL1' }, { icon: 'briefcase', key: 'featureL2' }, { icon: 'barChart', key: 'featureL3' }, { icon: 'brain', key: 'featureL4' }]
+              : isRecruiter
+              ? [{ icon: 'briefcase', key: 'featureR1' }, { icon: 'brain', key: 'featureR2' }, { icon: 'barChart', key: 'featureR3' }, { icon: 'play', key: 'featureR4' }]
+              : [{ icon: 'play', key: 'feature1' }, { icon: 'barChart', key: 'feature2' }, { icon: 'brain', key: 'feature3' }, { icon: 'briefcase', key: 'feature4' }];
+            return (
+              <>
+                <h1 style={{ fontSize: 'clamp(1.1rem, 2.2vw, 2rem)', fontWeight: '800', color: '#ffffff', textAlign: 'center', marginBottom: '1rem', marginTop: '0', lineHeight: 1.2, zIndex: 1 }}>
+                  {t(titleKey).split('\n').map((line, i) => (
+                    <React.Fragment key={i}>{line}{i === 0 && <br />}</React.Fragment>
+                  ))}
+                </h1>
+                <p style={{ fontSize: 'clamp(0.75rem, 1.2vw, 1rem)', color: 'rgba(255,255,255,0.8)', textAlign: 'center', maxWidth: '340px', lineHeight: 1.6, zIndex: 1, marginBottom: '1.5rem' }}>
+                  {t(subKey)}
+                </p>
+                {/* Feature bullets */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', zIndex: 1, width: '100%', maxWidth: '340px' }}>
+                  {features.map(f => (
+                    <div key={f.key} style={{
+                      display: 'flex', alignItems: 'center', gap: '0.75rem',
+                      background: 'rgba(255,255,255,0.1)',
+                      borderRadius: '10px', padding: '0.65rem 1rem',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                    }}>
+                      <Icon name={f.icon} size={18} style={{ color: '#a855f7' }} />
+                      <span style={{ fontSize: 'clamp(0.7rem, 1.05vw, 0.9rem)', fontWeight: '600', color: 'rgba(255,255,255,0.92)' }}>{t(f.key)}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            );
+          })()}
         </div>
 
         {/* Right panel — form */}
