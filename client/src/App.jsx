@@ -68,9 +68,9 @@ function HeroBrandMark({ isMobile = false }) {
   );
 }
 
-// Branding content shared by the desktop left panel and the mobile header,
-// so both surfaces show identical logo, hero copy, and feature bullets.
-function HeroContent({ authTab, selectedRole, t, isMobile = false }) {
+// Hero title, subtitle and feature bullets (no logo). Split out from HeroContent
+// so mobile can keep the logo on top and move this copy below the auth form.
+function HeroCopy({ authTab, selectedRole, t, isMobile = false }) {
   const isLogin     = authTab === 'signin';
   const isRecruiter = authTab === 'signup' && selectedRole === 'interviewer';
   const titleKey = isLogin ? 'heroTitleLogin' : isRecruiter ? 'heroTitleRecruiter'    : 'heroTitle';
@@ -82,7 +82,6 @@ function HeroContent({ authTab, selectedRole, t, isMobile = false }) {
     : [{ icon: 'play', key: 'feature1' }, { icon: 'barChart', key: 'feature2' }, { icon: 'brain', key: 'feature3' }, { icon: 'briefcase', key: 'feature4' }];
   return (
     <>
-      <HeroBrandMark isMobile={isMobile} />
       <h1 style={{ fontSize: isMobile ? 'clamp(1.15rem, 5vw, 1.5rem)' : 'clamp(1.1rem, 2.2vw, 2rem)', fontWeight: '800', color: '#ffffff', textAlign: 'center', marginBottom: isMobile ? '0.6rem' : '1rem', marginTop: '0', lineHeight: 1.2, zIndex: 1 }}>
         {t(titleKey).split('\n').map((line, i) => (
           <React.Fragment key={i}>{line}{i === 0 && <br />}</React.Fragment>
@@ -104,6 +103,16 @@ function HeroContent({ authTab, selectedRole, t, isMobile = false }) {
           </div>
         ))}
       </div>
+    </>
+  );
+}
+
+// Full branding block (logo + copy) used by the desktop left panel.
+function HeroContent({ authTab, selectedRole, t, isMobile = false }) {
+  return (
+    <>
+      <HeroBrandMark isMobile={isMobile} />
+      <HeroCopy authTab={authTab} selectedRole={selectedRole} t={t} isMobile={isMobile} />
     </>
   );
 }
@@ -780,7 +789,21 @@ export default function App() {
             boxShadow: 'var(--si-shadow-lg)',
             overflow: 'hidden',
           }}>
-            {/* Branding header — same gradient, logo and feature bullets as the desktop left panel */}
+            {/* Logo stays on top */}
+            <div style={{ padding: '1.75rem 1.5rem 0.75rem', textAlign: 'center' }}>
+              <HeroBrandMark isMobile={true} />
+            </div>
+            {/* Form section */}
+            <div style={{ padding: '0.5rem 1.5rem 1.75rem', textAlign: 'center' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' }}>
+                {authTab === 'signin' ? t('welcomeBack') : t('createYourAccount')}
+              </h2>
+              <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.25rem' }}>
+                {authTab === 'signin' ? t('signInSubtitle') : t('signUpSubtitle')}
+              </p>
+              {loginForm}
+            </div>
+            {/* Branding copy (title + features) moved below the form */}
             <div style={{
               background: 'linear-gradient(145deg, #143268 0%, #3157d5 58%, #0f766e 100%)',
               padding: '1.75rem 1.5rem',
@@ -801,17 +824,7 @@ export default function App() {
                 width: '160px', height: '160px', borderRadius: '50%',
                 background: 'rgba(255,255,255,0.06)',
               }} />
-              <HeroContent authTab={authTab} selectedRole={selectedRole} t={t} isMobile={true} />
-            </div>
-            {/* Form section */}
-            <div style={{ padding: '1.75rem 1.5rem', textAlign: 'center' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' }}>
-                {authTab === 'signin' ? t('welcomeBack') : t('createYourAccount')}
-              </h2>
-              <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.25rem' }}>
-                {authTab === 'signin' ? t('signInSubtitle') : t('signUpSubtitle')}
-              </p>
-              {loginForm}
+              <HeroCopy authTab={authTab} selectedRole={selectedRole} t={t} isMobile={true} />
             </div>
           </div>
         </div>
