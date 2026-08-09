@@ -3,10 +3,29 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
+const { OAuth2Client } = require('google-auth-library');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
   throw new Error('FATAL: JWT_SECRET environment variable is not set. Server cannot start.');
+}
+
+// Google OAuth: the same Client ID used by the frontend GIS button. The ID token
+// is verified against this audience so tokens minted for another app are rejected.
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
+
+// Turn a Google display name / email into a unique username, appending a short
+// numeric suffix on collision so two "David" accounts don't clash.
+async function deriveUniqueUsername(base) {
+  const cleaned = (base || 'user').trim().replace(/\s+/g, ' ').slice(0, 24) || 'user';
+  let candidate = cleaned;
+  for (let i = 0; i < 20; i++) {
+    const taken = await UserModel.findOne({ username: candidate }).select('_id').lean();
+    if (!taken) return candidate;
+    candidate = `${cleaned} ${Math.floor(1000 + Math.random() * 9000)}`;
+  }
+  return `${cleaned} ${uuidv4().slice(0, 6)}`;
 }
 
 const { UserModel } = require('../../database/users/userDB');
@@ -100,6 +119,71 @@ router.post('/login', async (req, res) => {
   } catch (err) {
     console.error('Login error:', err.message);
     return res.status(500).json({ error: 'Login failed. Please try again.' });
+  }
+});
+
+// POST /api/auth/google
+// Body: { credential, role? }  — `credential` is the Google ID token (JWT) from
+// the GIS button. We verify it, then find-or-create a user keyed on the Google
+// subject id, and issue our own app JWT exactly like login/register do.
+router.post('/google', async (req, res) => {
+  if (!googleClient) {
+    console.error('Google login attempted but GOOGLE_CLIENT_ID is not set.');
+    return res.status(500).json({ error: 'Google sign-in is not configured on the server.' });
+  }
+
+  const { credential, role } = req.body;
+  if (!credential) return res.status(400).json({ error: 'Missing Google credential.' });
+
+  let payload;
+  try {
+    const ticket = await googleClient.verifyIdToken({ idToken: credential, audience: GOOGLE_CLIENT_ID });
+    payload = ticket.getPayload();
+  } catch (err) {
+    console.error('Google token verification failed:', err.message);
+    return res.status(401).json({ error: 'Invalid Google sign-in. Please try again.' });
+  }
+
+  if (!payload || !payload.email || !payload.email_verified) {
+    return res.status(401).json({ error: 'Google account email is not verified.' });
+  }
+
+  const googleId = payload.sub;
+  const email = payload.email.trim().toLowerCase();
+
+  try {
+    // 1) Returning Google user.
+    let user = await UserModel.findOne({ googleId });
+
+    // 2) Existing local account with the same email — link Google to it.
+    if (!user) {
+      user = await UserModel.findOne({ email });
+      if (user) {
+        user.googleId = googleId;
+        if (user.authProvider !== 'google') user.authProvider = user.authProvider || 'local';
+        await user.save();
+      }
+    }
+
+    // 3) Brand-new user — create one. Role only applies to fresh accounts.
+    if (!user) {
+      const selectedRole = role === 'interviewer' ? 'interviewer' : 'candidate';
+      const username = await deriveUniqueUsername(payload.name || email.split('@')[0]);
+      user = await UserModel.create({
+        username,
+        email,
+        googleId,
+        authProvider: 'google',
+        role: selectedRole,
+      });
+    }
+
+    const userId = `user-${user._id.toString()}`;
+    const token = jwt.sign({ userId, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '30d' });
+    return res.json({ token, userId, username: user.username, role: user.role });
+  } catch (err) {
+    console.error('Google login error:', err.message);
+    return res.status(500).json({ error: 'Google sign-in failed. Please try again.' });
   }
 });
 

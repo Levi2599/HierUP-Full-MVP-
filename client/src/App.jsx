@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom';
 import UploadResumeForm from './simulator/UploadResumeForm';
 import SimulatorScreen from './simulator/SimulatorScreen';
@@ -13,6 +13,13 @@ import Icon from './components/ui/icons';
 const HIREUP_LOGO_SRC = '/brand/hireup-logo-transparent.png';
 const HIREUP_SYMBOL_SRC = '/brand/hireup-internal-symbol-white.png';
 const HIREUP_LOGO_MARK_SRC = '/brand/hireup-logo-mark.png';
+
+// Public Google OAuth Client ID (safe to ship in the frontend). Overridable via
+// VITE_GOOGLE_CLIENT_ID; falls back to the project's own client so it works in
+// dev and prod without extra config.
+const GOOGLE_CLIENT_ID =
+  import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+  '9939910285-0lh0pom9rst4rm771n7l9bgjq14m70ot.apps.googleusercontent.com';
 
 // How long a login stays valid before the user is asked to sign in again.
 // Absolute window from login time — keeps sessions bounded without forcing
@@ -37,32 +44,7 @@ function readValidToken() {
   return tok;
 }
 
-function FullHireUpLogo({ isMobile }) {
-  return (
-    <div
-      dir="ltr"
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        marginBottom: isMobile ? '1rem' : '1.25rem',
-      }}
-    >
-      <img
-        src={HIREUP_LOGO_MARK_SRC}
-        alt="HireUp: AI Interview Coach & Recruitment Matchmaker"
-        style={{
-          display: 'block',
-          width: isMobile ? 'min(78vw, 270px)' : 'min(100%, 320px)',
-          maxHeight: isMobile ? '112px' : '136px',
-          objectFit: 'contain',
-          objectPosition: 'top',
-        }}
-      />
-    </div>
-  );
-}
-
-function HeroBrandMark() {
+function HeroBrandMark({ isMobile = false }) {
   return (
     <div dir="ltr" style={{
       display: 'flex',
@@ -77,13 +59,110 @@ function HeroBrandMark() {
           display: 'block',
           width: 'auto',
           height: 'auto',
-          maxWidth: 'min(420px, 88%)',
-          maxHeight: '34vh',
+          maxWidth: isMobile ? 'min(240px, 72%)' : 'min(420px, 88%)',
+          maxHeight: isMobile ? '92px' : '34vh',
           objectFit: 'contain',
         }}
       />
     </div>
   );
+}
+
+// Branding content shared by the desktop left panel and the mobile header,
+// so both surfaces show identical logo, hero copy, and feature bullets.
+function HeroContent({ authTab, selectedRole, t, isMobile = false }) {
+  const isLogin     = authTab === 'signin';
+  const isRecruiter = authTab === 'signup' && selectedRole === 'interviewer';
+  const titleKey = isLogin ? 'heroTitleLogin' : isRecruiter ? 'heroTitleRecruiter'    : 'heroTitle';
+  const subKey   = isLogin ? 'heroSubtitleLogin' : isRecruiter ? 'heroSubtitleRecruiter' : 'heroSubtitle';
+  const features = isLogin
+    ? [{ icon: 'play', key: 'featureL1' }, { icon: 'briefcase', key: 'featureL2' }, { icon: 'barChart', key: 'featureL3' }, { icon: 'brain', key: 'featureL4' }]
+    : isRecruiter
+    ? [{ icon: 'briefcase', key: 'featureR1' }, { icon: 'brain', key: 'featureR2' }, { icon: 'barChart', key: 'featureR3' }, { icon: 'play', key: 'featureR4' }]
+    : [{ icon: 'play', key: 'feature1' }, { icon: 'barChart', key: 'feature2' }, { icon: 'brain', key: 'feature3' }, { icon: 'briefcase', key: 'feature4' }];
+  return (
+    <>
+      <HeroBrandMark isMobile={isMobile} />
+      <h1 style={{ fontSize: isMobile ? 'clamp(1.15rem, 5vw, 1.5rem)' : 'clamp(1.1rem, 2.2vw, 2rem)', fontWeight: '800', color: '#ffffff', textAlign: 'center', marginBottom: isMobile ? '0.6rem' : '1rem', marginTop: '0', lineHeight: 1.2, zIndex: 1 }}>
+        {t(titleKey).split('\n').map((line, i) => (
+          <React.Fragment key={i}>{line}{i === 0 && <br />}</React.Fragment>
+        ))}
+      </h1>
+      <p style={{ fontSize: isMobile ? '0.8rem' : 'clamp(0.75rem, 1.2vw, 1rem)', color: 'rgba(255,255,255,0.8)', textAlign: 'center', maxWidth: '340px', lineHeight: 1.6, zIndex: 1, marginBottom: isMobile ? '1rem' : '1.5rem' }}>
+        {t(subKey)}
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.5rem' : '0.85rem', zIndex: 1, width: '100%', maxWidth: '340px' }}>
+        {features.map(f => (
+          <div key={f.key} style={{
+            display: 'flex', alignItems: 'center', gap: '0.75rem',
+            background: 'rgba(255,255,255,0.1)',
+            borderRadius: '10px', padding: isMobile ? '0.5rem 0.85rem' : '0.65rem 1rem',
+            border: '1px solid rgba(255,255,255,0.15)',
+          }}>
+            <Icon name={f.icon} size={18} style={{ color: '#a855f7' }} />
+            <span style={{ fontSize: isMobile ? '0.8rem' : 'clamp(0.7rem, 1.05vw, 0.9rem)', fontWeight: '600', color: 'rgba(255,255,255,0.92)' }}>{t(f.key)}</span>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+// Renders the official Google Identity Services button. Loads the GIS script
+// once, then hands the returned ID token to onCredential. If the script is
+// blocked (offline/adblock), the button simply doesn't render — the rest of the
+// auth form keeps working.
+function GoogleSignInButton({ clientId, onCredential, language }) {
+  const divRef = useRef(null);
+  const cbRef = useRef(onCredential);
+  cbRef.current = onCredential;
+
+  useEffect(() => {
+    if (!clientId) return;
+    let cancelled = false;
+
+    const ensureScript = () => new Promise((resolve, reject) => {
+      if (window.google && window.google.accounts && window.google.accounts.id) return resolve();
+      const existing = document.getElementById('gis-script');
+      if (existing) {
+        existing.addEventListener('load', () => resolve());
+        existing.addEventListener('error', reject);
+        return;
+      }
+      const s = document.createElement('script');
+      s.src = 'https://accounts.google.com/gsi/client';
+      s.async = true;
+      s.defer = true;
+      s.id = 'gis-script';
+      s.onload = () => resolve();
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+
+    ensureScript().then(() => {
+      if (cancelled || !divRef.current || !(window.google && window.google.accounts && window.google.accounts.id)) return;
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: (resp) => { if (resp && resp.credential) cbRef.current(resp.credential); },
+      });
+      divRef.current.innerHTML = '';
+      const width = Math.min(divRef.current.offsetWidth || 320, 380);
+      window.google.accounts.id.renderButton(divRef.current, {
+        type: 'standard',
+        theme: 'outline',
+        size: 'large',
+        text: 'continue_with',
+        shape: 'rectangular',
+        logo_alignment: 'center',
+        width,
+        locale: language === 'he' ? 'he' : 'en',
+      });
+    }).catch(() => { /* GIS blocked — leave button empty */ });
+
+    return () => { cancelled = true; };
+  }, [clientId, language]);
+
+  return <div ref={divRef} style={{ display: 'flex', justifyContent: 'center', minHeight: '44px' }} />;
 }
 
 function NavBrandLockup({ isMobile }) {
@@ -317,6 +396,25 @@ export default function App() {
     }
   };
 
+  const handleGoogle = async (credential) => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetchWithRetry('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential, role: selectedRole }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t('loginFailed'));
+      saveSession(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogout = () => {
     const uid = localStorage.getItem('userId');
     localStorage.removeItem('token');
@@ -482,6 +580,9 @@ export default function App() {
             </label>
             <input
               type="text"
+              name="identifier"
+              autoComplete="username"
+              inputMode="email"
               placeholder={t('usernameOrEmailPlaceholder')}
               value={inputIdentifier}
               onChange={e => setInputIdentifier(e.target.value)}
@@ -496,6 +597,8 @@ export default function App() {
             </label>
             <input
               type="password"
+              name="password"
+              autoComplete="current-password"
               placeholder={t('passwordPlaceholder')}
               value={inputPassword}
               onChange={e => setInputPassword(e.target.value)}
@@ -539,6 +642,8 @@ export default function App() {
             </label>
             <input
               type="text"
+              name="username"
+              autoComplete="username"
               placeholder={t('usernamePlaceholder')}
               value={inputUsername}
               onChange={e => setInputUsername(e.target.value)}
@@ -553,6 +658,9 @@ export default function App() {
             </label>
             <input
               type="email"
+              name="email"
+              autoComplete="email"
+              inputMode="email"
               placeholder={t('emailPlaceholder')}
               value={inputEmail}
               onChange={e => setInputEmail(e.target.value)}
@@ -567,6 +675,8 @@ export default function App() {
             </label>
             <input
               type="password"
+              name="new-password"
+              autoComplete="new-password"
               placeholder={t('passwordPlaceholderMin')}
               value={inputRegisterPassword}
               onChange={e => setInputRegisterPassword(e.target.value)}
@@ -582,6 +692,8 @@ export default function App() {
             </label>
             <input
               type="password"
+              name="confirm-password"
+              autoComplete="new-password"
               placeholder={t('confirmPasswordPlaceholder')}
               value={inputConfirmPassword}
               onChange={e => setInputConfirmPassword(e.target.value)}
@@ -617,29 +729,31 @@ export default function App() {
         </form>
       )}
 
-      {authTab === 'signin' && (
-        <>
-          <div style={{ display: 'flex', alignItems: 'center', margin: '1rem 0' }}>
-            <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }} />
-            <span style={{ padding: '0 0.5rem', fontSize: '0.75rem', color: '#94a3b8', fontWeight: '600' }}>{t('or')}</span>
-            <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }} />
-          </div>
+      <div style={{ display: 'flex', alignItems: 'center', margin: '1rem 0' }}>
+        <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }} />
+        <span style={{ padding: '0 0.5rem', fontSize: '0.75rem', color: '#94a3b8', fontWeight: '600' }}>{t('or')}</span>
+        <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }} />
+      </div>
 
-          <button
-            type="button"
-            onClick={handleGuest}
-            disabled={loading}
-            style={{
-              width: '100%', padding: '0.75rem',
-              backgroundColor: '#f8fafc', color: '#475569',
-              border: '1px solid #e2e8f0', borderRadius: '10px', fontWeight: '600',
-              cursor: loading ? 'default' : 'pointer', transition: 'background-color 0.15s',
-              fontSize: '0.9rem',
-            }}
-          >
-            {loading ? t('loading') : t('continueAsGuestBtn')}
-          </button>
-        </>
+      <div style={{ opacity: loading ? 0.6 : 1, pointerEvents: loading ? 'none' : 'auto' }}>
+        <GoogleSignInButton clientId={GOOGLE_CLIENT_ID} onCredential={handleGoogle} language={language} />
+      </div>
+
+      {authTab === 'signin' && (
+        <button
+          type="button"
+          onClick={handleGuest}
+          disabled={loading}
+          style={{
+            width: '100%', padding: '0.75rem', marginTop: '0.75rem',
+            backgroundColor: '#f8fafc', color: '#475569',
+            border: '1px solid #e2e8f0', borderRadius: '10px', fontWeight: '600',
+            cursor: loading ? 'default' : 'pointer', transition: 'background-color 0.15s',
+            fontSize: '0.9rem',
+          }}
+        >
+          {loading ? t('loading') : t('continueAsGuestBtn')}
+        </button>
       )}
     </>
   );
@@ -664,17 +778,41 @@ export default function App() {
             borderRadius: '16px',
             border: '1px solid var(--si-border)',
             boxShadow: 'var(--si-shadow-lg)',
-            padding: '2rem 1.5rem',
-            textAlign: 'center',
+            overflow: 'hidden',
           }}>
-            <FullHireUpLogo isMobile={isMobile} />
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' }}>
-              {authTab === 'signin' ? t('welcomeBack') : t('createYourAccount')}
-            </h2>
-            <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.25rem' }}>
-              {authTab === 'signin' ? t('signInSubtitle') : t('signUpSubtitle')}
-            </p>
-            {loginForm}
+            {/* Branding header — same gradient, logo and feature bullets as the desktop left panel */}
+            <div style={{
+              background: 'linear-gradient(145deg, #143268 0%, #3157d5 58%, #0f766e 100%)',
+              padding: '1.75rem 1.5rem',
+              color: '#fff',
+              position: 'relative',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+            }}>
+              <div style={{
+                position: 'absolute', top: '-60px', left: '-60px',
+                width: '200px', height: '200px', borderRadius: '50%',
+                background: 'rgba(255,255,255,0.06)',
+              }} />
+              <div style={{
+                position: 'absolute', bottom: '-50px', right: '-50px',
+                width: '160px', height: '160px', borderRadius: '50%',
+                background: 'rgba(255,255,255,0.06)',
+              }} />
+              <HeroContent authTab={authTab} selectedRole={selectedRole} t={t} isMobile={true} />
+            </div>
+            {/* Form section */}
+            <div style={{ padding: '1.75rem 1.5rem', textAlign: 'center' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' }}>
+                {authTab === 'signin' ? t('welcomeBack') : t('createYourAccount')}
+              </h2>
+              <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.25rem' }}>
+                {authTab === 'signin' ? t('signInSubtitle') : t('signUpSubtitle')}
+              </p>
+              {loginForm}
+            </div>
           </div>
         </div>
       );
@@ -715,45 +853,7 @@ export default function App() {
             background: 'rgba(255,255,255,0.06)',
           }} />
 
-          <HeroBrandMark />
-
-          {(() => {
-            const isLogin     = authTab === 'signin';
-            const isRecruiter = authTab === 'signup' && selectedRole === 'interviewer';
-            const titleKey   = isLogin ? 'heroTitleLogin' : isRecruiter ? 'heroTitleRecruiter'    : 'heroTitle';
-            const subKey     = isLogin ? 'heroSubtitleLogin' : isRecruiter ? 'heroSubtitleRecruiter' : 'heroSubtitle';
-            const features   = isLogin
-              ? [{ icon: 'play', key: 'featureL1' }, { icon: 'briefcase', key: 'featureL2' }, { icon: 'barChart', key: 'featureL3' }, { icon: 'brain', key: 'featureL4' }]
-              : isRecruiter
-              ? [{ icon: 'briefcase', key: 'featureR1' }, { icon: 'brain', key: 'featureR2' }, { icon: 'barChart', key: 'featureR3' }, { icon: 'play', key: 'featureR4' }]
-              : [{ icon: 'play', key: 'feature1' }, { icon: 'barChart', key: 'feature2' }, { icon: 'brain', key: 'feature3' }, { icon: 'briefcase', key: 'feature4' }];
-            return (
-              <>
-                <h1 style={{ fontSize: 'clamp(1.1rem, 2.2vw, 2rem)', fontWeight: '800', color: '#ffffff', textAlign: 'center', marginBottom: '1rem', marginTop: '0', lineHeight: 1.2, zIndex: 1 }}>
-                  {t(titleKey).split('\n').map((line, i) => (
-                    <React.Fragment key={i}>{line}{i === 0 && <br />}</React.Fragment>
-                  ))}
-                </h1>
-                <p style={{ fontSize: 'clamp(0.75rem, 1.2vw, 1rem)', color: 'rgba(255,255,255,0.8)', textAlign: 'center', maxWidth: '340px', lineHeight: 1.6, zIndex: 1, marginBottom: '1.5rem' }}>
-                  {t(subKey)}
-                </p>
-                {/* Feature bullets */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', zIndex: 1, width: '100%', maxWidth: '340px' }}>
-                  {features.map(f => (
-                    <div key={f.key} style={{
-                      display: 'flex', alignItems: 'center', gap: '0.75rem',
-                      background: 'rgba(255,255,255,0.1)',
-                      borderRadius: '10px', padding: '0.65rem 1rem',
-                      border: '1px solid rgba(255,255,255,0.15)',
-                    }}>
-                      <Icon name={f.icon} size={18} style={{ color: '#a855f7' }} />
-                      <span style={{ fontSize: 'clamp(0.7rem, 1.05vw, 0.9rem)', fontWeight: '600', color: 'rgba(255,255,255,0.92)' }}>{t(f.key)}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            );
-          })()}
+          <HeroContent authTab={authTab} selectedRole={selectedRole} t={t} isMobile={false} />
         </div>
 
         {/* Right panel — form */}
